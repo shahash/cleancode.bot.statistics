@@ -1,4 +1,5 @@
 <?php
+//TEST COMMENT, REMOVE IT
 if($argc !=2) die("Usage: php parser.php [filename]\n");
 
 //Category's codes
