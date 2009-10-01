@@ -1,6 +1,5 @@
 <?php
-//TEST COMMENT, REMOVE IT
-if($argc !=2) die("Usage: php parser.php [filename]\n");
+if($argc < 2 || ($argc !=4 && $argv[2]!="--verbose.level")) die("Usage: php parser.php [filename]\n");
 //ICQ Number of Bot
 define("ICQ_NUMBER", 573869459);
 //Category's codes
@@ -41,7 +40,9 @@ $fh = fopen($argv[1],"r") or die("Не могу открыть файл\n");
 echo "\n#Parse started.\n";
 $tempTimeStampArray=mysql_fetch_array(mysql_query("SELECT `timestamp` FROM `log_entry` WHERE `id` = (SELECT MAX(`id`) FROM `log_entry`)"));
 $maxTimeStamp=$tempTimeStampArray[0];
+$countLines=0;
 while (!feof($fh)){
+	$countLines++;
 	$line = trim(fgets($fh, 4096));
 	if(preg_match($patternGeneral,$line,$result)){
 		$timestamp = mktime($result[4],$result[5],$result[6],$result[2],$result[1],$result[3]); 
@@ -90,10 +91,11 @@ while (!feof($fh)){
 		}
 		
 	}else{ 
-		echo "~ $line : Wrong format.";
+		if($argc==2) { echo "~ $line : Wrong format."; }
 	}
 			
-			echo "~ $line : Done!\n";			
+	    if(($argc==4) && ($argv[2]=="--verbose.level") && (($countLines%$argv[3])==0) && $argv[3]!=0){ echo "lines processed: $countLines\n"; }
+		if($argc==2) { echo "~ $line : Done."; }
 } 
 echo "#Parse completed.\n";	
 fclose($fh);
