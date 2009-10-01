@@ -27,7 +27,7 @@ define("ACT_ERROR_DATA_RECEIVE_FAIL",3);
 //[(day).(month).(year) (hour).(min).(sec)] - (command_type) - (data)
 $patternGeneral='/\[(\d{2})\.(\d{2})\.(\d{4})\s(\d{2}):(\d{2}):(\d{2})\] - ([a-z]+) - (.+)/';
 //(icq_number):"(message)"
-$patternIncomming='/(^[0-9]{5,9}): "(.+)"$/';
+$patternIncoming='/(^[0-9]{5,9}): "(.+)"$/';
 //(command): (property) | (date) (day).(month).(year)
 $patternData='/(^\w+): (\d{4}) \| (\w+): (\d{2}).(\d{2}).(\d{4})$/';
 //(command) (properties)
