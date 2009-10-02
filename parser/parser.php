@@ -34,7 +34,8 @@ $patternData='/(^\w+): (\d{4}) \| (\w+): (\d{2}).(\d{2}).(\d{4})$/';
 $patternCmdcall='/(^\w+) (.+)$/';
 
 require_once("db.php");
-$db_res = create_mysql_connection('root', 'root', 'ifmobot', 'localhost');
+$config = parse_ini_file('config.ini');
+$db_res = create_mysql_connection($config['db_user'], $config['db_pass'], $config['db_name'], $config['db_host']);
 mysql_query('SET NAMES UTF8');
 $fh = fopen($argv[1],"r") or die("Не могу открыть файл\n");
 echo "\n#Parse started.\n";
