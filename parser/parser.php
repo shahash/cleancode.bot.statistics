@@ -1,5 +1,39 @@
 <?php
-if($argc < 2 || ($argc !=4 && $argv[2]!="--verbose.level")) die("Usage: php parser.php [filename]\n");
+require_once('options.php');
+
+$optionsParams = array(
+        'verbose.level' => array(
+                'required' => false,
+                'argument' => 'required',
+                'short_option' => 'v',
+                'type' => 'enum',
+                'possible_enum_values' => array(
+                        'none',
+                        'progress',
+                        'fulllines'
+                )
+        ),
+        'verbose.skiplines' => array(
+                'required' => false,
+                'argument' => 'required',
+                'type' => 'int'
+        ),
+        'input.file' => array(
+                'required' => true,
+                'argument' => 'required',
+                'short_option' => 'i',
+        )
+);
+
+if(!$options = parse_options($optionsParams))
+{
+        die("Usage: php parser.php [--verbose.level=<level> [--verbose.skiplines=<linescount>]] --input.file=<filename>\n");
+}
+
+$inputFile = $options['input.file'];
+$verboseLevel = isset($options['verbose.level']) ? $options['verbose.level'] : 'none';
+$verboseSkiplines = isset($options['verbose.skiplines']) ? $options['verbose.skiplines'] : 10;
+
 //ICQ Number of Bot
 define("ICQ_NUMBER", 573869459);
 //Category's codes
@@ -36,7 +70,7 @@ $patternCmdcall='/(^\w+) (.+)$/';
 require_once("db.php");
 $db_res = create_mysql_connection();
 mysql_query('SET NAMES UTF8');
-$fh = fopen($argv[1],"r") or die("Не могу открыть файл\n");
+$fh = fopen($inputFile,"r") or die("Не могу открыть файл\n");
 echo "\n#Parse started.\n";
 $tempTimeStampArray=mysql_fetch_array(mysql_query("SELECT `timestamp` FROM `log_entry` WHERE `id` = (SELECT MAX(`id`) FROM `log_entry`)"));
 $maxTimeStamp=$tempTimeStampArray[0];
@@ -91,11 +125,21 @@ while (!feof($fh)){
 		}
 		
 	}else{ 
-		if($argc==2) { echo "~ $line : Wrong format."; }
+		if($verboseLevel == 'fulllines')
+		{
+			echo "~ $line : Wrong format.\n";
+		}
+
 	}
 			
-	    if(($argc==4) && ($argv[2]=="--verbose.level") && (($countLines%$argv[3])==0) && $argv[3]!=0){ echo "lines processed: $countLines\n"; }
-		if($argc==2) { echo "~ $line : Done."; }
+	if($verboseLevel == 'progress')
+	{
+		if($countLines % $verboseSkiplines == 0)
+			echo "lines processed: $countLines\n";
+	}
+	else
+		echo "~ $line : Done.\n";
+
 } 
 echo "#Parse completed.\n";	
 fclose($fh);
