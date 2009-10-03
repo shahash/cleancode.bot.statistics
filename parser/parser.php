@@ -137,7 +137,7 @@ while (!feof($fh)){
 		if($countLines % $verboseSkiplines == 0)
 			echo "lines processed: $countLines\n";
 	}
-	else
+	else if($verboseLevel == 'fulllines')
 		echo "~ $line : Done.\n";
 
 } 
