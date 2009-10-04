@@ -55,12 +55,14 @@ define("LOG_CATEGORY_ERROR", 15);
 //INCOMING
 define("ACT_INCOMING_ALL", 1);
 //GENERAL
+define("ACT_GENERAL_UNKNOWN",0);
 define("ACT_GENERAL_INIT", 1);
 define("ACT_GENERAL_CONNECT", 2);
 define("ACT_GENERAL_DISCONNECT", 3);
 //CMDCALL
 define("ACT_CMDCALL_SCHEDULE_GROUP", 1);
 //ERROR
+define("ACT_ERROR_UNKNOWN",0);
 define("ACT_ERROR_CURL_CANT_INIT",1);
 define("ACT_ERROR_CURL_DATASOURCE_404",2);
 define("ACT_ERROR_DATA_RECEIVE_FAIL",3);
@@ -133,7 +135,7 @@ while (!feof($fh)){
 		if($timestamp<=$maxTimeStamp){continue;}
 		switch($result[7]) {
 			case 'general':
-				$action_code=0;
+				$action_code = ACT_GENERAL_UNKNOWN;
 			   //Change if's to preq_match
 				if($result[8]=="libpurple initialized") $action_code = ACT_GENERAL_INIT;
 				if($result[8]=="Account connected: ".ICQ_NUMBER." prpl-icq") $action_code = ACT_GENERAL_CONNECT;
@@ -144,7 +146,7 @@ while (!feof($fh)){
 			break;
 			
 			case 'error':
-				$action_code = 0;
+				$action_code = ACT_ERROR_UNKNOWN;
 				
 				$queryBodies['log_entry'].="({$timestamp},".LOG_CATEGORY_ERROR.",{$action_code})";
 				pushData('log_entry', $countLines, $bufferSize);
