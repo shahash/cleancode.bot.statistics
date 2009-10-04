@@ -25,12 +25,14 @@ function parse_options($optionsParams)
                 if($optionParam['required'])
                         $requiredOptions[$optionName] = false;
         }
-
+        
+//Checking for success parsing
         if(!$options = getopt($shortOptions, $longOptions))
         {
                 return false;
         }
-
+        
+//Parsing from SHORT to LONG parametrs        
         foreach($options as $currentOption=>$optionValue)
         {
                 if(isset($shortToLongMapping[$currentOption]))
@@ -40,6 +42,7 @@ function parse_options($optionsParams)
                 }
         }
 
+//Checking for types and requireds
         foreach($options as $currentOption=>$optionValue)
         {
                 $success = true;
@@ -70,6 +73,14 @@ function parse_options($optionsParams)
 
         if(array_search(false, $requiredOptions))
                 return false;
+
+// Default value for option without args
+		foreach($options as $currentOption=>$optionValue)
+        {
+        	if($option[$currentOption]==false && isset($optionParams[$currentOption]['default']))
+        		$options[$currentOption]=$optionParams[$currentOption]['default'];
+        }
+
 
         return $options;
 }

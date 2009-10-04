@@ -21,7 +21,14 @@ $optionsParams = array(
         'input.file' => array(
                 'required' => true,
                 'argument' => 'required',
-                'short_option' => 'i',
+                'short_option' => 'i'
+        ),
+        'buffering' => array(
+        	'required' => false,
+        	'short_option' => 'b'
+        	'argument' => 'optional',
+    		'type' => 'int'
+        	'default' => 5
         )
 );
 
@@ -33,6 +40,7 @@ if(!$options = parse_options($optionsParams))
 $inputFile = $options['input.file'];
 $verboseLevel = isset($options['verbose.level']) ? $options['verbose.level'] : 'none';
 $verboseSkiplines = isset($options['verbose.skiplines']) ? $options['verbose.skiplines'] : 10;
+$bufferSize = isset($options['buffering']) ? $options['buffering'] : 0
 
 //ICQ Number of Bot
 define("ICQ_NUMBER", 573869459);
@@ -75,6 +83,31 @@ echo "\n#Parse started.\n";
 $tempTimeStampArray=mysql_fetch_array(mysql_query("SELECT `timestamp` FROM `log_entry` WHERE `id` = (SELECT MAX(`id`) FROM `log_entry`)"));
 $maxTimeStamp=$tempTimeStampArray[0];
 $countLines=0;
+
+//Function
+function pushData($queryBegin, &$query, $countLines, $bufferSize){
+	if(($countLines%$bufferSize)!=0){
+		$query.=',';
+	} else {
+		mysql_query($queryBegin.$query);
+		$query='';
+	}
+}
+
+//Queries
+$queryEntryBegin="INSERT INTO `log_entry`(`timestamp`, `category_id`, `action_code`) VALUES ";
+$queryEntry="";
+
+$queryIncomingBegin="INSERT INTO `log_incoming`(`entry_id`, `uin`, `text`) VALUES ";
+$queryIncoming="";
+
+$queryCmdcallBegin="INSERT INTO `log_cmdcall`(`entry_id`, `cmd`, `params`) VALUES ";
+$queryCmdcall="";
+
+$queryCmdcallScheduleBegin="INSERT INTO `log_cmdcall_schedule_group`(`entry_id`, `group`, `date`) VALUES ";
+$queryCmdcallSchedule="";
+
+
 while (!feof($fh)){
 	$countLines++;
 	$line = trim(fgets($fh, 4096));
@@ -89,37 +122,48 @@ while (!feof($fh)){
 				if($result[8]=="Account connected: ".ICQ_NUMBER." prpl-icq") $action_code = ACT_GENERAL_CONNECT;
 				if($result[8]=="Account disconnected: ".ICQ_NUMBER." prpl-icq") $action_code = ACT_GENERAL_DISCONNECT;
 				
-				mysql_query("INSERT INTO `log_entry`(`timestamp`, `category_id`, `action_code`) VALUES ('{$timestamp}',".LOG_CATEGORY_ERROR.",'{$action_code}')");
-				
+				$queryEntry.="('{$timestamp}',".LOG_CATEGORY_ERROR.",'{$action_code}')";
+				pushData($queryEntryBegin, $queryEntry, $countLines, $bufferSize);
 			break;
 			
 			case 'error':
 				$action_code = 0;
-				mysql_query("INSERT INTO `log_entry`(`timestamp`, `category_id`, `action_code`) VALUES ('{$timestamp}',".LOG_CATEGORY_ERROR.",'{$action_code}')");
+				
+				$queryError.="('{$timestamp}',".LOG_CATEGORY_ERROR.",'{$action_code}')";
+				pushData($queryErrorBegin, $queryError, $countLines, $bufferSize);
 			break;
 			
 			case 'incoming':
-				mysql_query("INSERT INTO `log_entry`(`timestamp`, `category_id`, `action_code`) VALUES ('{$timestamp}',".LOG_CATEGORY_INCOMING.",".ACT_INCOMING_ALL.")");
+			
+				$queryEntry.="('{$timestamp}',".LOG_CATEGORY_INCOMING.",".ACT_INCOMING_ALL.")";
+				pushData($queryEntryBegin, $queryEntry, $countLines, $bufferSize);
 				
 				$entry_id = mysql_insert_id();
 				
 				if(preg_match($patternIncoming, $result[8], $incoming_data)){
 					$incoming_data[2]=mysql_real_escape_string($incoming_data[2]);
-					mysql_query("INSERT INTO `log_incoming`(`entry_id`, `uin`, `text`) VALUES ('{$entry_id}','{$incoming_data[1]}','{$incoming_data[2]}')");
+					
+					$queryIncoming.="('{$entry_id}','{$incoming_data[1]}','{$incoming_data[2]}')";
+					pushData($queryIncomingBegin, $queryIncoming, $countLines, $bufferSize);
 				}
 			break;
 			
 			case 'cmdcall':
-				mysql_query("INSERT INTO log_entry(timestamp, category_id, action_code) VALUES ('$timestamp',".LOG_CATEGORY_CMDCALL.",".ACT_CMDCALL_SCHEDULE_GROUP.")");
+				$queryEntry.="('$timestamp',".LOG_CATEGORY_CMDCALL.",".ACT_CMDCALL_SCHEDULE_GROUP.")"
+				pushData($queryEntryBegin, $queryEntry, $countLines, $bufferSize);
 				
 				$entry_id = mysql_insert_id();
 	
 				if(preg_match($patternCmdcall,$result[8],$cmd_call)){
-					mysql_query("INSERT INTO `log_cmdcall`(`entry_id`, `cmd`, `params`) VALUES ('$entry_id',".ACT_CMDCALL_SCHEDULE_GROUP.",'$cmd_call[2]')");
+				
+					$queryCmdcall.="('{$entry_id}',".ACT_CMDCALL_SCHEDULE_GROUP.",'{$cmd_call[2]}')";
+					pushData($queryCmdcallBegin, $queryCmdcall, $countLines, $bufferSize);
 				}
 				if(preg_match($patternData,$cmd_call[2],$cmd_param)){
 					$timestamp_schedule=mktime(0,0,0,$cmd_param[5],$cmd_param[4],$cmd_param[6]);
-					mysql_query("INSERT INTO `log_cmdcall_schedule_group`(`entry_id`, `group`, `date`) VALUES ('{$entry_id}', '{$cmd_param[2]}', '{$timestamp_schedule}')");
+					
+					$queryCmdcallSchedule.="('{$entry_id}', '{$cmd_param[2]}', '{$timestamp_schedule}')";
+					pushData($queryCmdcallScheduleBegin, $queryCmdcallSchedule, $countLines, $bufferSize);
 				}
 			break;
 		}
