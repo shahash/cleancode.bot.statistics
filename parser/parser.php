@@ -88,22 +88,21 @@ $countLines=0;
 function pushData($tableName, $countLines, $bufferSize){
 	global $queryBodies;
 	global $queryHeads;
-	echo "Debug: countLines: $countLines\n";
-	echo "Debug: query: $queryBodies[$tableName]\n";
+	//echo "Debug: countLines: $countLines\n";
+	//echo "Debug: query: $queryBodies[$tableName]\n";
+	$queryBodies[$tableName].=",";
 	
 	if(($countLines%$bufferSize) == 0){
 		foreach($queryBodies as $currentTable => $currentQuery){
 			if(!empty($currentQuery)) {
 				$queryForPush=$queryHeads[$currentTable].$currentQuery;
-				$queryForPush[strlen($queryForPush)]=";";
-				echo "Debug: push: $queryForPush \n";
+				$queryForPush[strlen($queryForPush)-1]=";";
+				//echo "Debug: push: $queryForPush \n";
 				mysql_query($queryForPush) or die("Mysql error:". mysql_error()."\n");
 			}
 			$queryBodies[$currentTable]='';
 			//echo "Debug:$currentTable\n";
 		}
-	} else {
-		$queryBodies[$tableName].=",";
 	} 
 	
 }
@@ -124,7 +123,7 @@ global $queryBodies=array(
 			"log_cmdcall_schedule_group" => ""
 		);
 */
-//echo "Debug: buffersize: $bufferSize\n";
+
 while (!feof($fh)){
 	$countLines++;
 	//echo "Debug: countLines: $countLines\n";
@@ -141,13 +140,13 @@ while (!feof($fh)){
 				if($result[8]=="Account disconnected: ".ICQ_NUMBER." prpl-icq") $action_code = ACT_GENERAL_DISCONNECT;
 				
 				$queryBodies['log_entry'].="({$timestamp},".LOG_CATEGORY_GENERAL.",{$action_code})";
-				pushData($queryEntryBegin, $countLines, $bufferSize);
+				pushData('log_entry', $countLines, $bufferSize);
 			break;
 			
 			case 'error':
 				$action_code = 0;
 				
-				$queryBodies['log_entry'].="({$timestamp},".LOG_CATEGORY_ERROR.",'{$action_code}')";
+				$queryBodies['log_entry'].="({$timestamp},".LOG_CATEGORY_ERROR.",{$action_code})";
 				pushData('log_entry', $countLines, $bufferSize);
 			break;
 			
