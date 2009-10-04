@@ -1,6 +1,3 @@
-[24.09.2009 13:26:53] - general - libpurple initialized
-[24.09.2009 13:26:54] - general - Account connected: 573869459 prpl-icq
-[25.09.2009 11:42:18] - cmdcall - schedule group: 2158 | date: 28.09.2009
 [25.09.2009 11:42:21] - incoming - 111111111: "?anienaiea 1131"
 [25.09.2009 11:43:42] - incoming - 111111111: "schedule 1131 "
 [25.09.2009 11:43:42] - cmdcall - schedule group: 1131 | date: 25.09.2009

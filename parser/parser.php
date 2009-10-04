@@ -85,17 +85,27 @@ $maxTimeStamp=$tempTimeStampArray[0];
 $countLines=0;
 
 //Function
-function pushData($tableName, $values, $countLines, $bufferSize){
+function pushData($tableName, $countLines, $bufferSize){
 	global $queryBodies;
-	if(($countLines%$bufferSize)!=0){
-		$queryBodies[$tableName].=',';
-	} else {
+	global $queryHeads;
+	echo "Debug: countLines: $countLines\n";
+	echo "Debug: query: $queryBodies[$tableName]\n";
+	
+	if(($countLines%$bufferSize) == 0){
 		foreach($queryBodies as $currentTable => $currentQuery){
-			if(!empty($currentQuery)) mysql_query($queryHeads[$currentTable].$currentQuery);
+			if(!empty($currentQuery)) {
+				$queryForPush=$queryHeads[$currentTable].$currentQuery;
+				$queryForPush[strlen($queryForPush)]=";";
+				echo "Debug: push: $queryForPush \n";
+				mysql_query($queryForPush) or die("Mysql error:". mysql_error()."\n");
+			}
 			$queryBodies[$currentTable]='';
-			echo "Debug:$currentTable\n";
+			//echo "Debug:$currentTable\n";
 		}
-	}
+	} else {
+		$queryBodies[$tableName].=",";
+	} 
+	
 }
 
 //Queries
@@ -114,9 +124,10 @@ global $queryBodies=array(
 			"log_cmdcall_schedule_group" => ""
 		);
 */
-
+//echo "Debug: buffersize: $bufferSize\n";
 while (!feof($fh)){
 	$countLines++;
+	//echo "Debug: countLines: $countLines\n";
 	$line = trim(fgets($fh, 4096));
 	if(preg_match($patternGeneral,$line,$result)){
 		$timestamp = mktime($result[4],$result[5],$result[6],$result[2],$result[1],$result[3]); 
@@ -129,48 +140,48 @@ while (!feof($fh)){
 				if($result[8]=="Account connected: ".ICQ_NUMBER." prpl-icq") $action_code = ACT_GENERAL_CONNECT;
 				if($result[8]=="Account disconnected: ".ICQ_NUMBER." prpl-icq") $action_code = ACT_GENERAL_DISCONNECT;
 				
-				$queryBodies['log_entry'].="('{$timestamp}',".LOG_CATEGORY_GENERAL.",'{$action_code}')";
-				pushData($queryEntryBegin, $queryEntry, $countLines, $bufferSize);
+				$queryBodies['log_entry'].="({$timestamp},".LOG_CATEGORY_GENERAL.",{$action_code})";
+				pushData($queryEntryBegin, $countLines, $bufferSize);
 			break;
 			
 			case 'error':
 				$action_code = 0;
 				
-				$queryBodies['log_entry'].="('{$timestamp}',".LOG_CATEGORY_ERROR.",'{$action_code}')";
-				pushData($queryErrorBegin, $queryError, $countLines, $bufferSize);
+				$queryBodies['log_entry'].="({$timestamp},".LOG_CATEGORY_ERROR.",'{$action_code}')";
+				pushData('log_entry', $countLines, $bufferSize);
 			break;
 			
 			case 'incoming':
 			
-				$queryBodies['log_entry'].="('{$timestamp}',".LOG_CATEGORY_INCOMING.",".ACT_INCOMING_ALL.")";
-				pushData($queryEntryBegin, $queryEntry, $countLines, $bufferSize);
+				$queryBodies['log_entry'].="({$timestamp},".LOG_CATEGORY_INCOMING.",".ACT_INCOMING_ALL.")";
+				pushData('log_entry', $countLines, $bufferSize);
 				
 				$entry_id = mysql_insert_id();
 				
 				if(preg_match($patternIncoming, $result[8], $incoming_data)){
 					$incoming_data[2]=mysql_real_escape_string($incoming_data[2]);
 					
-					$queryBodies['log_incoming'].="('{$entry_id}','{$incoming_data[1]}','{$incoming_data[2]}')";
-					pushData($queryIncomingBegin, $queryIncoming, $countLines, $bufferSize);
+					$queryBodies['log_incoming'].="({$entry_id},'{$incoming_data[1]}','{$incoming_data[2]}')";
+					pushData('log_incoming', $countLines, $bufferSize);
 				}
 			break;
 			
 			case 'cmdcall':
-				$queryBodies['log_entry'].="('$timestamp',".LOG_CATEGORY_CMDCALL.",".ACT_CMDCALL_SCHEDULE_GROUP.")";
-				pushData($queryEntryBegin, $queryEntry, $countLines, $bufferSize);
+				$queryBodies['log_entry'].="({$timestamp},".LOG_CATEGORY_CMDCALL.",".ACT_CMDCALL_SCHEDULE_GROUP.")";
+				pushData('log_entry', $countLines, $bufferSize);
 				
 				$entry_id = mysql_insert_id();
 	
 				if(preg_match($patternCmdcall,$result[8],$cmd_call)){
 				
-					$queryBodies['log_cmdcall'].="('{$entry_id}',".ACT_CMDCALL_SCHEDULE_GROUP.",'{$cmd_call[2]}')";
-					pushData($queryCmdcallBegin, $queryCmdcall, $countLines, $bufferSize);
+					$queryBodies['log_cmdcall'].="({$entry_id},".ACT_CMDCALL_SCHEDULE_GROUP.",'{$cmd_call[2]}')";
+					pushData('log_cmdcall', $countLines, $bufferSize);
 				}
 				if(preg_match($patternData,$cmd_call[2],$cmd_param)){
 					$timestamp_schedule=mktime(0,0,0,$cmd_param[5],$cmd_param[4],$cmd_param[6]);
 					
-					$queryBodies['log_cmdcall_schedule_group'].="('{$entry_id}', '{$cmd_param[2]}', '{$timestamp_schedule}')";
-					pushData($queryCmdcallScheduleBegin, $queryCmdcallSchedule, $countLines, $bufferSize);
+					$queryBodies['log_cmdcall_schedule_group'].="({$entry_id}, '{$cmd_param[2]}', '{$timestamp_schedule}')";
+					pushData('log_cmdcall_schedule_group', $countLines, $bufferSize);
 				}
 			break;
 		}
